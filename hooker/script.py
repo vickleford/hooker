@@ -27,8 +27,6 @@ hooker [-csSpx] [-f puppetmaster_config] [-e environment] [-P port] [-i identity
 """
 
 
-import os
-import paramiko
 import argparse
 import configobj
 import storepass
