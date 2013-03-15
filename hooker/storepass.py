@@ -7,10 +7,13 @@ in .bash_history.
 '''
 
 
+import getpass
 import argparse
 
-
 class StorePass(argparse.Action):
-
     def __call__(self, parser, namespace, values, option_string=None):
-        pass
+        if values is None:
+            password = getpass.getpass()
+        else:
+            password = values
+        setattr(namespace, self.dest, password)
