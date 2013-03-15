@@ -30,18 +30,26 @@ hooker [-csSpx] [-f puppetmaster_config] [-e environment] [-P port] [-i identity
 import argparse
 import configobj
 import storepass
+import remoteworker
 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-c', '--clean-cert', action='store_true', default=False, 
-                    help='Clean the cert on the puppetmaster first')
-parser.add_argument('-s', '--sudo', action='store_true', default=False,
+authtype = parser.add_mutually_exclusive_group()
+authtype.add_argument('-s', '--sudo', action='store_true', default=False,
                     help='Use sudo on the server to be hooked up')
-parser.add_argument('-S', '--switch-user', action='store_true', default=False,
-                    help='Use sudo on the agent')
+authtype.add_argument('-S', '--switch-user', action='store_true', default=False,
+                    help='Switch user to root on the server to be hooked up')
+
+
 parser.add_argument('-p', '--password', nargs='?', action=storepass.StorePass,
                     help='Give the password to log into the client with')
+#parser.add_argument('-i', '--identity-file', 
+#                    help='SSH key to log in to the agent with')
+
+
+parser.add_argument('-c', '--clean-cert', action='store_true', default=False, 
+                    help='Clean the cert on the puppetmaster first')
 parser.add_argument('-x', '--john-hancock', action='store_true', default=False,
                     help='Sign the certificate request on the puppetmaster')
                     
@@ -49,8 +57,6 @@ parser.add_argument('-f', '--config', default='justusesomething')
 parser.add_argument('-e', '--environment', nargs='?',
                     help='Which environment to hook into on the puppetmaster')
 parser.add_argument('-P', '--port', type=int, help='Port to use on the agent')
-#parser.add_argument('-i', '--identity-file', 
-#                    help='SSH key to log in to the agent with')
 parser.add_argument('-l', '--login-name', 
                     help='User name to log into the agent with')
 parser.add_argument('host', 
@@ -61,24 +67,32 @@ parser.add_argument('-v', '--verbose', action='count', default=0,
 args = parser.parse_args()
 
 
-def get_distro():
-    '''Return a string representing the distro we're on.'''
-    
-    pass
-    
-    
-def get_provider():
-    '''Return a string representing the path to which package manager we're on
-    based on which distro we're on.'''
-    
-    pass
-
-
 def main():
     '''Run me, Johnny!'''
     
-    if __name__ == '__main__':
-        if args.clean_cert:
-            clean_cert()
+    master = remoteworker.RemoteWorker()
+    master.set_creds()
+    
+    agent = remoteworker.RemoteWorker()
+    agent.set_creds()
+    
+    if args.clean_cert:
+        master.clean_cert()
                 
+    if args.sudo is True:
+        prefix = 'sudo '
+    elif args.switch_user is True:
+        prefix = 'su - -c '
+    else:
+        prefix = ''
+        
+    password = ''
+    puppetd_args = ''
+    
+    agent.hookup_agent(cmd_prefix=prefix, puppetd_args)
+    
+    if args.john_hancock is True:
+        master.sign_cert_req()
+    
+    
     

@@ -44,6 +44,19 @@ class RemoteWorker(object):
             
         return provider
         
+    def _cmd(self, cmd):
+        '''Run a single command on the system we're logged into'''
+        
+        (stdin, stdout, stderr) = self.client.exec_command(cmd)
+        
+        output = stdout.read()
+        self.log.info(output)
+        
+        errors = stderr.read()
+        self.log.error(errors)
+        
+        return (output, errors)
+        
     def _privileged_cmd(self, cmd, password):
         '''Run a single privileged command on the system we're logged into
         with a password.
@@ -78,31 +91,42 @@ class RemoteWorker(object):
         Return a tuple of stdout, stderr.
         '''
         
-        # connect
+        try:
+            # connect
         
-        # work
+            # work
         
-        # return (stdout, stderr)
+            # return (stdout, stderr)
+        finally:
+            self.client.close()
 
-        pass
-
-    def sign_cert(self):
+    def sign_cert_req(self):
         '''Sign the certificate request on the puppetmaster.
         Return a tuple of stdout, stderr.
         '''
         
-        # connect
+        try:
+            # connect
         
-        # work
+            # work
         
-        # return (stdout, stderr)
-
-        pass
+            # return (stdout, stderr)
+        finally:
+            self.client.close()
         
-    def hookup_agent(self):
+    def hookup_agent(self, cmd_prefix='', password=None, puppetargs=''):
         '''Hook a remote agent into a puppetmaster.
+        
+        Command prefix should be sudo or su if not logging in as root
+        
+        
         Return a tuple of stdout, stderr.
         '''
+        
+        install_ruby = '{0} {1} ruby rubygems'.format(cmd_prefix, provider)
+        install_puppet = '{0} gem install puppet facter'.format(cmd_prefix)
+        check_in = '{0} puppetd -t {1}'.format(cmd_prefix, puppetargs)
+        
 
         try:
             # assume we've already set_creds
@@ -112,12 +136,13 @@ class RemoteWorker(object):
         
             provider = self._get_provider()
         
-            # use that provider to install ruby and rubygems
+            if cmd_prefix is None:
+                self._cmd(install_ruby)
+            else:
+                self._privileged_cmd(install_ruby, password)
         
             # gem install puppet facter
         
             # try to check in
-        
-        pass
-    
-    
+        finally:
+            self.client.close()
