@@ -33,6 +33,7 @@ import storepass
 
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument('-c', '--clean-cert', action='store_true', default=False, 
                     help='Clean the cert on the puppetmaster first')
 parser.add_argument('-s', '--sudo', action='store_true', default=False,
@@ -54,6 +55,9 @@ parser.add_argument('-l', '--login-name',
                     help='User name to log into the agent with')
 parser.add_argument('host', 
                     help='IP address or FQDN of agent to install puppet on')
+parser.add_argument('-v', '--verbose', action='count', default=0,
+                    help='Set verbosity. Use more times for more verbose.')
+                    
 args = parser.parse_args()
 
 

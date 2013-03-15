@@ -1,5 +1,5 @@
-import os
 import paramiko
+import logging
 
 
 class RemoteWorker(object):
@@ -15,6 +15,8 @@ class RemoteWorker(object):
         client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.WarningPolicy)
         
+        self.log = logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+        
         self.hostname = None
         self.port = None
         self.username = None
@@ -26,49 +28,29 @@ class RemoteWorker(object):
         distro_probe = 'cat /etc/issue'
         stdin, stdout, stderr = self.client.exec_command('')
         
-        if "Red Hat" in stdout:
+        output = stdout.read()
+        self.log.info(output)
+        self.log.error(stderr.read())
+        
+        if "Red Hat" in output:
             # assume nobody is going to try this on RHEL 4 and below
             provider = '/usr/bin/yum update -y'
-        elif "Debian" in stdout:
+        elif "Debian" in output:
             # does Ubuntu show up like this too?
             # what's the path to apt-get?
             provider = 'apt-get install'
+        else:
+            self.log.critical("Unsupported distro: {0}".format(output))
             
         return provider
-
-    """
-    def _privileged_cmd(self, cmd, sudo=False, su=False, password=None):
-        '''Run a privileged command on the system we're logged into.
-        
-        cmd is a string of the command and args to run
-        
-        sudo specifies to sudo the command or not
-        Can be True or False
-        
-        su specifies to run the command with "su - -c"
-        Can be True or False
-        
-        password is the password to authenticate the privileged cmd with
-        None means don't send a password (i.e. isn't needed)
-        
-        Return a tuple of stdout, stderr.
-        '''
-        
-        wrapper = ""
-        
-        if sudo is True:
-            
-        
-        # return (stdout, stderr)
-        """
         
     def _privileged_cmd(self, cmd, password):
         '''Run a single privileged command on the system we're logged into
         with a password.
         
         Assumes cmd comes with a prefix that requires password input, like
-        sudo chmod FILE
-        su - -c cmod FILE
+        * sudo chmod FILE
+        * su - -c cmod FILE
         
         Returns a tuple of stdout, stderr
         '''
@@ -78,7 +60,10 @@ class RemoteWorker(object):
         stdin.flush()
         
         output = stdout.read()
+        self.log.info(output)
+        
         errors = stderr.read()
+        self.log.error(errors)
         
         return (output, errors)
     
