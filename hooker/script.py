@@ -71,13 +71,11 @@ def main():
     #    master.clean_cert()
                 
     if args.sudo is True:
-        prefix = 'sudo '
+        agent.prefix = 'sudo '
     elif args.switch_user is not None:
-        prefix = 'su - -c '
-    else:
-        prefix = ''
-        
-    password = ''
+        agent.prefix = 'su - -c '
+        agent.superpass = args.switch_user
+            
     puppetd_args = ''
     
     agent.hookup_agent(cmd_prefix=prefix, puppetd_args)

@@ -21,6 +21,8 @@ class RemoteWorker(object):
         self.port = None
         self.username = None
         self.password = None
+        self.prefix = ''
+        self.superpass = None
         
     def _get_provider(self):
         '''Return the path to the package manager for the distro.'''
@@ -119,7 +121,7 @@ class RemoteWorker(object):
         finally:
             self.client.close()
         
-    def hookup_agent(self, cmd_prefix='', password=None, puppetargs=''):
+    def hookup_agent(self, gemargs='', puppetargs=''):
         '''Hook a remote agent into a puppetmaster.
         
         Command prefix should be sudo or su if not logging in as root
@@ -130,9 +132,12 @@ class RemoteWorker(object):
         Return a tuple of stdout, stderr.
         '''
         
-        install_ruby = '{0} {1} ruby rubygems'.format(cmd_prefix, provider)
-        install_puppet = '{0} gem install puppet facter'.format(cmd_prefix)
-        check_in = '{0} puppetd -t {1}'.format(cmd_prefix, puppetargs)
+        # catch 22 on lines 138 and 148
+        
+        # set up commands
+        install_ruby = '{0}{1} ruby rubygems'.format(self.prefix, provider)
+        install_puppet = '{0}gem install puppet {1}'.format(self.prefix, gemargs)
+        check_in = '{0}puppetd -t {1}'.format(self.prefix, puppetargs)
         
         try:
             # assume we've already set_creds
@@ -144,6 +149,8 @@ class RemoteWorker(object):
         
             if cmd_prefix is None:
                 self._cmd(install_ruby)
+                self._cmd(install_puppet)
+                self._cmd(check_in)
             else:
                 self._privileged_cmd(install_ruby, password)
         
