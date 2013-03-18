@@ -55,7 +55,7 @@ class RemoteWorker(object):
         (stdin, stdout, stderr) = self.client.exec_command(cmd)
         
         output = stdout.read()
-        self.log.info(output)
+        self.log.debug(output)
         
         errors = stderr.read()
         self.log.error(errors)
@@ -78,7 +78,7 @@ class RemoteWorker(object):
         stdin.flush()
         
         output = stdout.read()
-        self.log.info(output)
+        self.log.debug(output)
         
         errors = stderr.read()
         self.log.error(errors)
@@ -124,6 +124,8 @@ class RemoteWorker(object):
         
         Command prefix should be sudo or su if not logging in as root
         
+        Password is actually the pass to use sudo or su with, 
+        and not the initial login.
         
         Return a tuple of stdout, stderr.
         '''
@@ -132,7 +134,6 @@ class RemoteWorker(object):
         install_puppet = '{0} gem install puppet facter'.format(cmd_prefix)
         check_in = '{0} puppetd -t {1}'.format(cmd_prefix, puppetargs)
         
-
         try:
             # assume we've already set_creds
             self.client.connect(self.hostname, port=self.port, 
