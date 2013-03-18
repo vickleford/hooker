@@ -10,10 +10,21 @@ in .bash_history.
 import getpass
 import argparse
 
+
 class StorePass(argparse.Action):
+    
     def __call__(self, parser, namespace, values, option_string=None):
+        # clarify which password we're asking for
+        if option_string == '--password':
+            prompt = 'Password: '
+        elif option_string == '--switch-user':
+            prompt = 'Root password: '
+        
+        # get the password
         if values is None:
-            password = getpass.getpass()
+            password = getpass.getpass(prompt)
         else:
             password = values
+            
+        # store
         setattr(namespace, self.dest, password)

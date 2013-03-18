@@ -25,6 +25,11 @@ class RemoteWorker(object):
     def _get_provider(self):
         '''Return the path to the package manager for the distro.'''
         
+        # dude this is fugly. this should probably be converted into a series
+        # of try...except statements going through each known provider
+        # indeedly, biggest problem is interacting with a remote system 
+        # through paramiko... blargh!
+        
         distro_probe = 'cat /etc/issue'
         stdin, stdout, stderr = self.client.exec_command('')
         

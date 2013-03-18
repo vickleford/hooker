@@ -27,10 +27,12 @@ hooker [-csSpx] [-f puppetmaster_config] [-e environment] [-P port] [-i identity
 """
 
 
+import os
 import argparse
 import configobj
-import storepass
 import remoteworker
+
+from storepass import StorePass
 
 
 parser = argparse.ArgumentParser()
@@ -38,22 +40,23 @@ parser = argparse.ArgumentParser()
 authtype = parser.add_mutually_exclusive_group()
 authtype.add_argument('-s', '--sudo', action='store_true', default=False,
                     help='Use sudo on the server to be hooked up')
-authtype.add_argument('-S', '--switch-user', action='store_true', default=False,
+authtype.add_argument('-S', '--switch-user', action=StorePass, default=False,
                     help='Switch user to root on the server to be hooked up')
 
-
-parser.add_argument('-p', '--password', nargs='?', action=storepass.StorePass,
+parser.add_argument('-p', '--password', nargs='?', action=StorePass,
                     help='Give the password to log into the client with')
+# support this later
 #parser.add_argument('-i', '--identity-file', 
 #                    help='SSH key to log in to the agent with')
 
-
 parser.add_argument('-c', '--clean-cert', action='store_true', default=False, 
                     help='Clean the cert on the puppetmaster first')
-parser.add_argument('-x', '--john-hancock', action='store_true', default=False,
-                    help='Sign the certificate request on the puppetmaster')
+# should this be in the config instead?
+#parser.add_argument('-x', '--john-hancock', action='store_true', default=False,
+#                    help='Sign the certificate request on the puppetmaster')
                     
-parser.add_argument('-f', '--config', default='justusesomething')
+parser.add_argument('-f', '--config', 
+                    default=os.path.expanduser('~/.config/hooker/config.ini'))
 parser.add_argument('-e', '--environment', nargs='?',
                     help='Which environment to hook into on the puppetmaster')
 parser.add_argument('-P', '--port', type=int, help='Port to use on the agent')
@@ -81,7 +84,7 @@ def main():
                 
     if args.sudo is True:
         prefix = 'sudo '
-    elif args.switch_user is True:
+    elif args.switch_user is not None:
         prefix = 'su - -c '
     else:
         prefix = ''
