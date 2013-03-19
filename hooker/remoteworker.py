@@ -33,15 +33,15 @@ class RemoteWorker(object):
         # through paramiko... blargh!
         
         distro_probe = 'cat /etc/issue'
-        stdin, stdout, stderr = self.client.exec_command('')
+        stdin, stdout, stderr = self.client.exec_command(distro_probe)
         
         output = stdout.read()
-        self.log.info(output)
+        self.log.debug(output)
         self.log.error(stderr.read())
         
         if "Red Hat" in output:
             # assume nobody is going to try this on RHEL 4 and below
-            provider = '/usr/bin/yum update -y'
+            provider = '/usr/bin/yum install -y'
         elif "Debian" in output:
             # does Ubuntu show up like this too?
             # what's the path to apt-get?
@@ -125,21 +125,9 @@ class RemoteWorker(object):
         
     def hookup_agent(self, gemargs='', puppetargs=''):
         '''Hook a remote agent into a puppetmaster.
-        
-        Command prefix should be sudo or su if not logging in as root
-        
-        Password is actually the pass to use sudo or su with, 
-        and not the initial login.
-        
+                
         Return a tuple of stdout, stderr.
         '''
-        
-        # catch 22 on lines 138 and 148
-        
-        # set up commands
-        install_ruby = '{0}{1} ruby rubygems'.format(self.prefix, provider)
-        install_puppet = '{0}gem install puppet {1}'.format(self.prefix, gemargs)
-        check_in = '{0}puppetd -t {1}'.format(self.prefix, puppetargs)
         
         try:
             # assume we've already set_creds
@@ -148,13 +136,20 @@ class RemoteWorker(object):
                                 password=self.password)
         
             provider = self._get_provider()
+            
+            # set up commands
+            install_ruby = '{0}{1} ruby rubygems'.format(self.prefix, provider)
+            install_puppet = '{0}gem install puppet {1}'.format(self.prefix, gemargs)
+            check_in = '{0}puppet agent -t {1}'.format(self.prefix, puppetargs)
         
-            if cmd_prefix is None:
+            if cmd_prefix == '':
                 self._cmd(install_ruby)
                 self._cmd(install_puppet)
                 self._cmd(check_in)
             else:
-                self._privileged_cmd(install_ruby, password)
+                self._privileged_cmd(install_ruby, self.superpass)
+                self._privileged_cmd(install_puppet, self.superpass)
+                self._privileged_cmd(check_in, self.superpass)
         
             # gem install puppet facter
         

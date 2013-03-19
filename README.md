@@ -31,3 +31,9 @@ Should we even be asking for a flag to explicitly clean the cert off the puppetm
 [root@overlord-n01 ~]# echo $?
 0
 [root@overlord-n01 ~]#
+
+
+to dos: 
+* split out the two entry points into their own scripts
+* update this
+* rename the project ^_^

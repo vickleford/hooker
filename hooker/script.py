@@ -94,16 +94,8 @@ def setup_master_creds(file, section):
     except KeyError:
         sys.exit("Can't find the puppetmaster {0} in {1}".format(section,file))
         
-    try:
-        port = int(config[section]['port'])
-    except KeyError:
-        port = 22
-        
-    try:
-        user = config[section]['user']
-    except KeyError:
-        user = os.getlogin()
-        
+    user = config[section].setdefault('user', os.getlogin())
+                
     try:
         password = keyring.get_password(section, user)
     except:
@@ -111,11 +103,11 @@ def setup_master_creds(file, section):
         
     if password is None:
         sys.exit("Could not load password for {0}".format(section))
-    
+              
     creds = { 'hostname': hostname,
-              'port': port,
-              'username': user,
-              'password': password }
+               'port': int(config[section].setdefault('port', 22)),
+               'username': user,
+               'password': password }
     
     return creds
     
@@ -124,6 +116,7 @@ def main():
     '''Run me, Johnny!'''
     args = setup_args()
     config = configobj.ConfigObj(args.config)
+    config[args.puppetmaster].setdefault('wait_for_cert', 60)
     
     master = remoteworker.RemoteWorker()
     master.set_creds(setup_master_creds(args.config, args.puppetmaster))
@@ -139,10 +132,24 @@ def main():
     elif args.switch_user is not None:
         agent.prefix = 'su - -c '
         agent.superpass = args.switch_user
-
-    puppetd_args = ''
+        
+    gem_args = []
+    if args.puppet_version:
+        gem_args.append('-v')
+        gem_args.append(args.puppet_version)
     
-    agent.hookup_agent()
+    puppet_args = []
+    puppet_args.append('--server')
+    puppet_args.append(config[args.puppetmaster]['fqdn'])
+    puppet_args.append('--waitforcert')
+    puppet_args.append('config[args.puppetmaster]['wait_for_cert']')
+    if args.environment:
+        puppet_args.append('-e')
+        puppet_args.append(args.environment)
+    if 
+    
+    
+    agent.hookup_agent(gemargs, puppetargs)
     
     #if args.john_hancock is True:
     #    master.sign_cert_req() 
