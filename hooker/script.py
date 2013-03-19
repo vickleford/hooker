@@ -142,7 +142,7 @@ def main():
     puppet_args.append('--server')
     puppet_args.append(config[args.puppetmaster]['fqdn'])
     puppet_args.append('--waitforcert')
-    puppet_args.append('config[args.puppetmaster]['wait_for_cert']')
+    puppet_args.append(config[args.puppetmaster]['wait_for_cert'])
     if args.environment:
         puppet_args.append('-e')
         puppet_args.append(args.environment)
