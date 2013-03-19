@@ -1,49 +1,72 @@
 import os
 import argparse
 import configobj
-import remoteworker
+import keyring
 
+import remoteworker
 from storepass import StorePass
 
 
-parser = argparse.ArgumentParser()
+def setup_args():
+    '''Return an argparse object for the main entry point.'''
+    
+    parser = argparse.ArgumentParser()
 
-authtype = parser.add_mutually_exclusive_group()
-authtype.add_argument('-s', '--sudo', action='store_true', default=False,
-                    help='Use sudo on the server to be hooked up')
-authtype.add_argument('-S', '--switch-user', action=StorePass, default=False,
-                    help='Switch user to root on the server to be hooked up')
+    parser.add_argument('-p', '--password', nargs='?', action=StorePass,
+                        help='Give the password to log into the client with')
+    # support this later
+    # this is another good place for a mutually exclusive group with -p
+    #parser.add_argument('-i', '--identity-file', 
+    #                    help='SSH key to log in to the agent with')
 
-parser.add_argument('-p', '--password', nargs='?', action=StorePass,
-                    help='Give the password to log into the client with')
-# support this later
-#parser.add_argument('-i', '--identity-file', 
-#                    help='SSH key to log in to the agent with')
+    authtype = parser.add_mutually_exclusive_group()
+    authtype.add_argument('-s', '--sudo', action='store_true', default=False,
+                        help='Use sudo on the server to be hooked up')
+    authtype.add_argument('-S', '--switch-user', action=StorePass, default=False,
+                        help='Switch user to root on the server to be hooked up')
 
-parser.add_argument('-c', '--clean-cert', action='store_true', default=False, 
-                    help='Clean the cert on the puppetmaster first')
-# should this be in the config instead?
-#parser.add_argument('-x', '--john-hancock', action='store_true', default=False,
-#                    help='Sign the certificate request on the puppetmaster')
+    parser.add_argument('-f', '--config', 
+                        default=os.path.expanduser('~/.config/hooker/config.ini'),
+                        help='Specify an alternate config file to load \
+                              puppetmasters from.')
+    parser.add_argument('-e', '--environment',
+                        help='Which environment to hook into on the puppetmaster')
+    parser.add_argument('-V', '--puppet-version',
+                        help="Specify a puppet version to pass to\
+                             'gem install puppet -V'")
+    parser.add_argument('-P', '--port', type=int, help='Port to use on the agent')
+    parser.add_argument('-l', '--login-name', default='root',
+                        help='User name to log into the agent with')
+
+    parser.add_argument('-c', '--clean-cert', action='store_true', default=False, 
+                        help='Clean the cert on the puppetmaster first')
+    # should this be in the config instead?
+    #parser.add_argument('-x', '--john-hancock', action='store_true', default=False,
+    #                    help='Sign the certificate request on the puppetmaster')
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='Set verbosity. Use more times for more verbose.')
+
+    parser.add_argument('puppetmaster',
+                        help='Specify which puppetmaster from config to use')
+    parser.add_argument('host', 
+                        help='IP address or FQDN of agent to install puppet on')
                     
-parser.add_argument('-f', '--config', 
-                    default=os.path.expanduser('~/.config/hooker/config.ini'))
-parser.add_argument('-e', '--environment', nargs='?',
-                    help='Which environment to hook into on the puppetmaster')
-parser.add_argument('-V', '--puppet-version',
-                    help="Specify a puppet version to pass to\
-                         'gem install puppet -V'"
-parser.add_argument('-P', '--port', type=int, help='Port to use on the agent')
-parser.add_argument('-l', '--login-name', default='root',
-                    help='User name to log into the agent with')
-parser.add_argument('host', 
-                    help='IP address or FQDN of agent to install puppet on')
-parser.add_argument('-v', '--verbose', action='count', default=0,
-                    help='Set verbosity. Use more times for more verbose.')
-                    
-args = parser.parse_args()
+    return parser.parse_args()
+    
 
-
+def setup_passwd_args():
+    '''Return an argparse object for the passwd entry point.'''
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--config', 
+                        default=os.path.expanduser('~/.config/hooker/config.ini'),
+                        help='Specify an alternate config file to load \
+                              puppetmasters from.')
+    parser.add_argument('puppetmaster',
+                        help='Specify which puppetmaster from config to use')
+    return parser.parse_args()
+    
+    
 def setup_agent_creds():
     '''Return a dict of login credentials trnaslated from command line 
     arguments that we can pass to a RemoteWorker object.'''
@@ -60,6 +83,8 @@ def setup_agent_creds():
 
 def main():
     '''Run me, Johnny!'''
+    args = setup_args()
+    config = configobj.ConfigObj(args.config)
     
     master = remoteworker.RemoteWorker()
     #master.set_creds()
@@ -78,7 +103,20 @@ def main():
             
     puppetd_args = ''
     
-    agent.hookup_agent(cmd_prefix=prefix, puppetd_args)
+    agent.hookup_agent()
     
     #if args.john_hancock is True:
-    #    master.sign_cert_req()
+    #    master.sign_cert_req() 
+    
+    
+def set_password():
+    '''Set a password for a puppetmaster.'''
+
+    args = setup_passwd_args()
+    config = configobj.ConfigObj(args.config)
+    
+    username = config[args.puppetmaster]['user']
+    prompt = "New {0} password: ".format(args.puppetmaster)
+    password = getpass.getpass(prompt)
+    
+    keyring.set_password(args.puppetmaster, username, password)

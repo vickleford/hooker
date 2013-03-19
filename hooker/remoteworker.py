@@ -104,6 +104,7 @@ class RemoteWorker(object):
             # work
         
             # return (stdout, stderr)
+            pass
         finally:
             self.client.close()
 
@@ -118,6 +119,7 @@ class RemoteWorker(object):
             # work
         
             # return (stdout, stderr)
+            pass
         finally:
             self.client.close()
         
