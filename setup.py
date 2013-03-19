@@ -10,13 +10,13 @@ config = {
     'download_url': 'https://github.com/vickleford/hooker',
     'author_email': 'vwatkinsjr@gmail.com',
     'version': '0.1',
-    'install_requires': ['paramiko', 'getpass', 'configobj', 'keyring'],
+    'install_requires': ['paramiko', 'configobj', 'keyring'],
     'packages': ['hooker'],
     'name': 'hooker',
     'entry_points': {
         'console_scripts': [
             'hooker = hooker.script:main',
-            'hooker-passwd = hooker.script.set_password'
+            'hooker-passwd = hooker.script:set_password'
         ]
     }
 }

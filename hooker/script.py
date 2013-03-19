@@ -1,7 +1,9 @@
 import os
+import sys
 import argparse
 import configobj
 import keyring
+import getpass
 
 import remoteworker
 from storepass import StorePass
@@ -81,13 +83,50 @@ def setup_agent_creds():
     return creds
 
 
+def setup_master_creds(file, section):
+    '''Return a dict of login credentials translated from saved INI file
+    and keyring.'''
+        
+    config = configobj.ConfigObj(file)
+    
+    try:
+        hostname = config[section]['fqdn']
+    except KeyError:
+        sys.exit("Can't find the puppetmaster {0} in {1}".format(section,file))
+        
+    try:
+        port = int(config[section]['port'])
+    except KeyError:
+        port = 22
+        
+    try:
+        user = config[section]['user']
+    except KeyError:
+        user = os.getlogin()
+        
+    try:
+        password = keyring.get_password(section, user)
+    except:
+        sys.exit("Could not load password for {0}".format(section))
+        
+    if password is None:
+        sys.exit("Could not load password for {0}".format(section))
+    
+    creds = { 'hostname': hostname,
+              'port': port,
+              'username': user,
+              'password': password }
+    
+    return creds
+    
+    
 def main():
     '''Run me, Johnny!'''
     args = setup_args()
     config = configobj.ConfigObj(args.config)
     
     master = remoteworker.RemoteWorker()
-    #master.set_creds()
+    master.set_creds(setup_master_creds(args.config, args.puppetmaster))
     
     agent = remoteworker.RemoteWorker()
     agent.set_creds(**setup_agent_creds())
@@ -100,7 +139,7 @@ def main():
     elif args.switch_user is not None:
         agent.prefix = 'su - -c '
         agent.superpass = args.switch_user
-            
+
     puppetd_args = ''
     
     agent.hookup_agent()
@@ -116,7 +155,10 @@ def set_password():
     config = configobj.ConfigObj(args.config)
     
     username = config[args.puppetmaster]['user']
-    prompt = "New {0} password: ".format(args.puppetmaster)
-    password = getpass.getpass(prompt)
+    password = getpass.getpass('New password: ')
+    password2 = getpass.getpass('Retype password: ')
     
-    keyring.set_password(args.puppetmaster, username, password)
+    if password == password2:
+        keyring.set_password(args.puppetmaster, username, password)
+    else:
+        print("Passwords didn't match!")
